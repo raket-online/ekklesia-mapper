@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useMetricsStore } from './metrics'
 
 export const useChurchesStore = defineStore('churches', () => {
   // State
   const churches = ref([])
+  const metricsStore = useMetricsStore()
 
   // Load from localStorage on init
   const loadFromStorage = () => {
@@ -34,6 +36,27 @@ export const useChurchesStore = defineStore('churches', () => {
   // Save to localStorage
   const saveToStorage = () => {
     localStorage.setItem('ekklesia-churches', JSON.stringify(churches.value))
+  }
+
+  // Ensure all churches have all metrics (add new metrics with value 0)
+  const ensureMetrics = () => {
+    const metrics = metricsStore.metrics
+    churches.value.forEach(church => {
+      metrics.forEach(metric => {
+        if (metric.isPrimary) {
+          // Ensure primary metric (members) exists
+          if (church.metrics[metric.key] === undefined) {
+            church.metrics[metric.key] = 50
+          }
+        } else {
+          // Add non-primary metrics with 0 if they don't exist
+          if (church.metrics[metric.key] === undefined) {
+            church.metrics[metric.key] = 0
+          }
+        }
+      })
+    })
+    saveToStorage()
   }
 
   // Get children of a church
@@ -126,40 +149,43 @@ export const useChurchesStore = defineStore('churches', () => {
     return churches.value.find(c => c.id === id)
   }
 
-  // Computed: Total stats (counts all churches including mother church)
+  // Computed: Total stats (dynamically calculated from all metrics)
   const totalStats = computed(() => {
-    const totals = {
-      members: 0,
-      baptized: 0,
-      calling: 0,
-      community: 0,
-      commission: 0,
-      reaching: 0
-    }
+    const metrics = metricsStore.metrics
+    const primaryMetric = metrics.find(m => m.isPrimary) || metrics[0]
 
-    // Count all churches - each church contributes its own members
-    churches.value.forEach(church => {
-      totals.members += church.metrics.members || 0
-      totals.baptized += church.metrics.baptized || 0
-      totals.calling += church.metrics.calling || 0
-      totals.community += church.metrics.community || 0
-      totals.commission += church.metrics.commission || 0
-      totals.reaching += church.metrics.reaching || 0
+    const totals = {}
+    const percentages = {}
+
+    // Initialize totals for all metrics
+    metrics.forEach(metric => {
+      totals[metric.key] = 0
     })
 
-    const percentages = {
-      baptized: totals.members > 0 ? Math.round((totals.baptized / totals.members) * 100) : 0,
-      calling: totals.members > 0 ? Math.round((totals.calling / totals.members) * 100) : 0,
-      community: totals.members > 0 ? Math.round((totals.community / totals.members) * 100) : 0,
-      commission: totals.members > 0 ? Math.round((totals.commission / totals.members) * 100) : 0,
-      reaching: totals.members > 0 ? Math.round((totals.reaching / totals.members) * 100) : 0
-    }
+    // Count all churches
+    churches.value.forEach(church => {
+      metrics.forEach(metric => {
+        totals[metric.key] += church.metrics[metric.key] || 0
+      })
+    })
+
+    // Calculate percentages (relative to primary metric)
+    metrics.forEach(metric => {
+      if (!metric.isPrimary && totals[primaryMetric.key] > 0) {
+        percentages[metric.key] = Math.round((totals[metric.key] / totals[primaryMetric.key]) * 100)
+      } else {
+        percentages[metric.key] = 0
+      }
+    })
 
     return { totals, percentages }
   })
 
   // Initialize
   loadFromStorage()
+
+  // Ensure all churches have current metrics
+  ensureMetrics()
 
   return {
     churches,
@@ -168,6 +194,7 @@ export const useChurchesStore = defineStore('churches', () => {
     updateChurch,
     deleteChurch,
     getChurch,
-    totalStats
+    totalStats,
+    ensureMetrics
   }
 })

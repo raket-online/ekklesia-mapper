@@ -7,7 +7,7 @@
           <div class="flex items-center gap-4">
             <div class="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
               <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
             </div>
             <div>
@@ -18,6 +18,16 @@
 
           <!-- Zoom Controls -->
           <div class="flex items-center gap-3">
+            <button
+              @click="showAdmin = true"
+              class="bg-white rounded-xl shadow-lg border border-gray-200 px-4 py-2 hover:bg-gray-50 transition-colors text-gray-700 font-medium text-sm flex items-center gap-2"
+              title="Manage Metrics"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31 2.37 2.37.996.608 2.296.07 2.572-1.065a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-1.066-2.573c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31-2.37-2.37-.996-.608-2.296-.07-2.572 1.065a1.724 1.724 0 002.573-1.066z" />
+              </svg>
+              Settings
+            </button>
             <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-1 flex items-center gap-1">
               <button
                 @click="zoomOut"
@@ -95,6 +105,12 @@
       @submit="handleSubmit"
     />
 
+    <!-- Admin Panel Modal -->
+    <AdminPanel
+      :show="showAdmin"
+      @close="showAdmin = false"
+    />
+
     <!-- Toast Notification -->
     <Transition
       enter-active-class="transition-all duration-300 ease-out"
@@ -143,11 +159,13 @@ import { usePanZoom } from './composables/usePanZoom'
 import TreeNode from './components/TreeNode.vue'
 import ChurchForm from './components/ChurchForm.vue'
 import StatsPanel from './components/StatsPanel.vue'
+import AdminPanel from './components/AdminPanel.vue'
 
 const store = useChurchesStore()
 const { scale, translateX, translateY, isDragging, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel, reset } = usePanZoom()
 
 const showForm = ref(false)
+const showAdmin = ref(false)
 const editingChurch = ref(null)
 const parentId = ref(null)
 const toast = ref({ show: false, message: '', type: 'info' })
@@ -218,13 +236,13 @@ const showToast = (message, type = 'info') => {
 
 const zoomIn = () => {
   if (scale.value < 3) {
-    scale.value = Math.min(scale.value * 1.2, 3)
+    scale.value = Math.min(scale.value * 1.1, 3)
   }
 }
 
 const zoomOut = () => {
   if (scale.value > 0.2) {
-    scale.value = Math.max(scale.value / 1.2, 0.2)
+    scale.value = Math.max(scale.value / 1.1, 0.2)
   }
 }
 

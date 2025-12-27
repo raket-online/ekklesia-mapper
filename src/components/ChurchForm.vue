@@ -24,13 +24,13 @@
             />
           </div>
 
-          <!-- Members -->
+          <!-- Primary Metric (Members) -->
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Number of Members *
+              {{ primaryMetric.name }} *
             </label>
             <input
-              v-model.number="formData.metrics.members"
+              v-model.number="formData.metrics[primaryMetric.key]"
               type="number"
               min="0"
               required
@@ -39,93 +39,28 @@
             />
           </div>
 
-          <!-- Baptized -->
-          <div class="mb-4">
+          <!-- Other Metrics -->
+          <div
+            v-for="metric in otherMetrics"
+            :key="metric.id"
+            class="mb-4"
+          >
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Baptized
+              {{ metric.name }}
             </label>
             <input
-              v-model.number="formData.metrics.baptized"
+              v-model.number="formData.metrics[metric.key]"
               type="number"
               min="0"
-              :max="formData.metrics.members"
+              :max="formData.metrics[primaryMetric.key]"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="0"
             />
-            <p v-if="formData.metrics.baptized > formData.metrics.members" class="text-red-500 text-sm mt-1">
-              Cannot exceed members
-            </p>
-          </div>
-
-          <!-- Calling -->
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Calling (Connection with God)
-            </label>
-            <input
-              v-model.number="formData.metrics.calling"
-              type="number"
-              min="0"
-              :max="formData.metrics.members"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0"
-            />
-            <p v-if="formData.metrics.calling > formData.metrics.members" class="text-red-500 text-sm mt-1">
-              Cannot exceed members
-            </p>
-          </div>
-
-          <!-- Community -->
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Community (Connection with family)
-            </label>
-            <input
-              v-model.number="formData.metrics.community"
-              type="number"
-              min="0"
-              :max="formData.metrics.members"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0"
-            />
-            <p v-if="formData.metrics.community > formData.metrics.members" class="text-red-500 text-sm mt-1">
-              Cannot exceed members
-            </p>
-          </div>
-
-          <!-- Commission -->
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Commission (Serving others)
-            </label>
-            <input
-              v-model.number="formData.metrics.commission"
-              type="number"
-              min="0"
-              :max="formData.metrics.members"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0"
-            />
-            <p v-if="formData.metrics.commission > formData.metrics.members" class="text-red-500 text-sm mt-1">
-              Cannot exceed members
-            </p>
-          </div>
-
-          <!-- Reaching -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Reaching others
-            </label>
-            <input
-              v-model.number="formData.metrics.reaching"
-              type="number"
-              min="0"
-              :max="formData.metrics.members"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0"
-            />
-            <p v-if="formData.metrics.reaching > formData.metrics.members" class="text-red-500 text-sm mt-1">
-              Cannot exceed members
+            <p
+              v-if="formData.metrics[metric.key] > formData.metrics[primaryMetric.key]"
+              class="text-red-500 text-sm mt-1"
+            >
+              Cannot exceed {{ primaryMetric.name }}
             </p>
           </div>
 
@@ -154,6 +89,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useMetricsStore } from '../stores/metrics'
 
 const props = defineProps({
   show: {
@@ -168,30 +104,33 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
+const metricsStore = useMetricsStore()
+
 const formData = ref({
   name: '',
-  metrics: {
-    members: 0,
-    baptized: 0,
-    calling: 0,
-    community: 0,
-    commission: 0,
-    reaching: 0
-  }
+  metrics: {}
 })
+
+// Get primary metric
+const primaryMetric = computed(() => metricsStore.getPrimaryMetric())
+
+// Get other metrics (non-primary)
+const otherMetrics = computed(() => metricsStore.metrics.filter(m => !m.isPrimary))
 
 const isEditing = computed(() => props.church !== null)
 
 const isValid = computed(() => {
-  const m = formData.value.metrics
-  return (
-    formData.value.name.trim() !== '' &&
-    m.baptized <= m.members &&
-    m.calling <= m.members &&
-    m.community <= m.members &&
-    m.commission <= m.members &&
-    m.reaching <= m.members
-  )
+  if (formData.value.name.trim() === '') return false
+
+  const primaryValue = formData.value.metrics[primaryMetric.value.key] || 0
+
+  // Check all metrics against primary
+  for (const metric of otherMetrics.value) {
+    const value = formData.value.metrics[metric.key] || 0
+    if (value > primaryValue) return false
+  }
+
+  return true
 })
 
 watch(() => props.show, (newVal) => {
@@ -201,16 +140,15 @@ watch(() => props.show, (newVal) => {
       metrics: { ...props.church.metrics }
     }
   } else if (newVal) {
+    // Initialize metrics with 0 for all
+    const metrics = {}
+    metricsStore.metrics.forEach(metric => {
+      metrics[metric.key] = metric.isPrimary ? 50 : 0
+    })
+
     formData.value = {
       name: '',
-      metrics: {
-        members: 0,
-        baptized: 0,
-        calling: 0,
-        community: 0,
-        commission: 0,
-        reaching: 0
-      }
+      metrics
     }
   }
 })
