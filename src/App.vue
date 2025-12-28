@@ -152,7 +152,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useChurchesStore } from './stores/churches'
 import { usePanZoom } from './composables/usePanZoom'
@@ -160,59 +160,60 @@ import TreeNode from './components/TreeNode.vue'
 import ChurchForm from './components/ChurchForm.vue'
 import StatsPanel from './components/StatsPanel.vue'
 import AdminPanel from './components/AdminPanel.vue'
+import type { Church, ChurchData, Stats, Toast } from './types'
 
 const store = useChurchesStore()
 const { scale, translateX, translateY, isDragging, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel, reset } = usePanZoom()
 
-const showForm = ref(false)
-const showAdmin = ref(false)
-const editingChurch = ref(null)
-const parentId = ref(null)
-const toast = ref({ show: false, message: '', type: 'info' })
+const showForm = ref<boolean>(false)
+const showAdmin = ref<boolean>(false)
+const editingChurch = ref<Church | null>(null)
+const parentId = ref<string | null>(null)
+const toast = ref<Toast>({ show: false, message: '', type: 'info' })
 
 const canvasStyle = computed(() => ({
   transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`
 }))
 
-const rootChurch = computed(() => store.getChurch('root'))
-const totalStats = computed(() => store.totalStats)
+const rootChurch = computed<Church | null>(() => store.getChurch('root'))
+const totalStats = computed<Stats>(() => store.totalStats)
 
-const getChildren = (parentId) => store.getChildren(parentId)
+const getChildren = (parentId: string | null): Church[] => store.getChildren(parentId)
 
-const handleSelect = (church) => {
+const handleSelect = (church: Church): void => {
   // Future: Show church details
 }
 
-const handleAddChild = (id) => {
+const handleAddChild = (id: string): void => {
   parentId.value = id
   editingChurch.value = null
   showForm.value = true
 }
 
-const handleEdit = (church) => {
+const handleEdit = (church: Church): void => {
   editingChurch.value = church
   parentId.value = null
   showForm.value = true
 }
 
-const handleDelete = (id) => {
+const handleDelete = (id: string): void => {
   if (confirm('Are you sure you want to delete this church and all sub-churches?')) {
     try {
       store.deleteChurch(id)
       showToast('Church successfully deleted', 'success')
     } catch (error) {
-      showToast(error.message, 'error')
+      showToast((error as Error).message, 'error')
     }
   }
 }
 
-const closeForm = () => {
+const closeForm = (): void => {
   showForm.value = false
   editingChurch.value = null
   parentId.value = null
 }
 
-const handleSubmit = (data) => {
+const handleSubmit = (data: ChurchData): void => {
   try {
     if (editingChurch.value) {
       store.updateChurch(editingChurch.value.id, data)
@@ -223,35 +224,35 @@ const handleSubmit = (data) => {
     }
     closeForm()
   } catch (error) {
-    showToast(error.message, 'error')
+    showToast((error as Error).message, 'error')
   }
 }
 
-const showToast = (message, type = 'info') => {
+const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info'): void => {
   toast.value = { show: true, message, type }
   setTimeout(() => {
     toast.value.show = false
   }, 3000)
 }
 
-const zoomIn = () => {
+const zoomIn = (): void => {
   if (scale.value < 3) {
     scale.value = Math.min(scale.value * 1.1, 3)
   }
 }
 
-const zoomOut = () => {
+const zoomOut = (): void => {
   if (scale.value > 0.2) {
     scale.value = Math.max(scale.value / 1.1, 0.2)
   }
 }
 
-const resetView = () => {
+const resetView = (): void => {
   reset()
 }
 
 // Keyboard shortcuts
-const handleKeydown = (e) => {
+const handleKeydown = (e: KeyboardEvent): void => {
   if (e.key === 'Escape') {
     closeForm()
   }

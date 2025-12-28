@@ -13,12 +13,13 @@
           <!-- Name -->
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Name *
+              Name * ({{ formData.name.length }}/{{ appConfig.validation.MAX_CHURCH_NAME_LENGTH }})
             </label>
             <input
               v-model="formData.name"
               type="text"
               required
+              :maxlength="appConfig.validation.MAX_CHURCH_NAME_LENGTH"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Church name"
             />
@@ -87,9 +88,12 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useMetricsStore } from '../stores/metrics'
+import { appConfig } from '../config/app.config'
+import type { Church, ChurchData, Metric } from '../types'
+import type { PropType } from 'vue'
 
 const props = defineProps({
   show: {
@@ -97,7 +101,7 @@ const props = defineProps({
     default: false
   },
   church: {
-    type: Object,
+    type: Object as PropType<Church>,
     default: null
   }
 })
@@ -106,20 +110,20 @@ const emit = defineEmits(['close', 'submit'])
 
 const metricsStore = useMetricsStore()
 
-const formData = ref({
+const formData = ref<ChurchData>({
   name: '',
   metrics: {}
 })
 
 // Get primary metric
-const primaryMetric = computed(() => metricsStore.getPrimaryMetric())
+const primaryMetric = computed<Metric>(() => metricsStore.getPrimaryMetric())
 
 // Get other metrics (non-primary)
-const otherMetrics = computed(() => metricsStore.metrics.filter(m => !m.isPrimary))
+const otherMetrics = computed<Metric[]>(() => metricsStore.metrics.filter(m => !m.isPrimary))
 
-const isEditing = computed(() => props.church !== null)
+const isEditing = computed<boolean>(() => props.church !== null)
 
-const isValid = computed(() => {
+const isValid = computed<boolean>(() => {
   if (formData.value.name.trim() === '') return false
 
   const primaryValue = formData.value.metrics[primaryMetric.value.key] || 0
@@ -133,17 +137,19 @@ const isValid = computed(() => {
   return true
 })
 
-watch(() => props.show, (newVal) => {
+watch(() => props.show, (newVal: boolean) => {
   if (newVal && props.church) {
     formData.value = {
       name: props.church.name,
       metrics: { ...props.church.metrics }
     }
   } else if (newVal) {
-    // Initialize metrics with 0 for all
-    const metrics = {}
+    // Initialize metrics with default values
+    const metrics: Record<string, number> = {}
     metricsStore.metrics.forEach(metric => {
-      metrics[metric.key] = metric.isPrimary ? 50 : 0
+      metrics[metric.key] = metric.isPrimary
+        ? appConfig.defaults.DEFAULT_PRIMARY_METRIC_VALUE
+        : appConfig.defaults.DEFAULT_METRIC_VALUE
     })
 
     formData.value = {
@@ -153,7 +159,7 @@ watch(() => props.show, (newVal) => {
   }
 })
 
-const handleSubmit = () => {
+const handleSubmit = (): void => {
   if (isValid.value) {
     emit('submit', { ...formData.value })
   }
