@@ -11,6 +11,7 @@ interface UsePanZoomReturn {
   handleMouseUp: () => void
   handleWheel: (e: WheelEvent) => void
   reset: () => void
+  fitToScreen: (totalChurches: number, maxDepth: number) => void
 }
 
 export function usePanZoom(): UsePanZoomReturn {
@@ -54,6 +55,43 @@ export function usePanZoom(): UsePanZoomReturn {
     translateY.value = appConfig.zoom.DEFAULT_TRANSLATE_Y
   }
 
+  /**
+   * Smart zoom: automatically calculate optimal zoom level to fit all churches on screen
+   * Based on total number of churches and tree depth
+   */
+  const fitToScreen = (totalChurches: number, maxDepth: number): void => {
+    // Base zoom on number of churches - more churches = smaller zoom
+    // Each church card is approximately 480px wide with spacing
+    const cardWidth = 500
+    const spacing = 100
+    const totalWidthNeeded = Math.max(totalChurches * cardWidth + (totalChurches - 1) * spacing, 1200)
+
+    // Typical screen width is around 1920px (desktop), but we want some padding
+    const screenWidth = window.innerWidth || 1920
+    const padding = 200
+
+    // Calculate scale based on width needed
+    let calculatedScale = (screenWidth - padding) / totalWidthNeeded
+
+    // Also consider depth - deeper trees need more vertical space
+    // Each level is approximately 250px tall (card + connector)
+    const levelHeight = 300
+    const totalHeightNeeded = maxDepth * levelHeight
+    const screenHeight = (window.innerHeight || 1080) - 200 // Account for header
+
+    const verticalScale = screenHeight / totalHeightNeeded
+
+    // Use the smaller of the two scales to ensure everything fits
+    calculatedScale = Math.min(calculatedScale, verticalScale)
+
+    // Clamp to reasonable limits
+    calculatedScale = Math.max(0.15, Math.min(calculatedScale, 1.0))
+
+    scale.value = calculatedScale
+    translateX.value = 0
+    translateY.value = 0
+  }
+
   return {
     scale,
     translateX,
@@ -63,6 +101,7 @@ export function usePanZoom(): UsePanZoomReturn {
     handleMouseMove,
     handleMouseUp,
     handleWheel,
-    reset
+    reset,
+    fitToScreen
   }
 }

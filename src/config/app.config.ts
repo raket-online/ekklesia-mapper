@@ -45,7 +45,7 @@ export const appConfig = {
    */
   defaults: {
     DEFAULT_CHURCH_NAME: 'New Church',
-    DEFAULT_PRIMARY_METRIC_VALUE: 50,
+    DEFAULT_PRIMARY_METRIC_VALUE: 8,
     DEFAULT_METRIC_VALUE: 0,
     ROOT_CHURCH_ID: 'root',
     ROOT_CHURCH_NAME: 'Root Church'

@@ -16,18 +16,8 @@
             </div>
           </div>
 
-          <!-- Zoom Controls -->
+          <!-- Controls -->
           <div class="flex items-center gap-3">
-            <button
-              @click="showAdmin = true"
-              class="bg-white rounded-xl shadow-lg border border-gray-200 px-4 py-2 hover:bg-gray-50 transition-colors text-gray-700 font-medium text-sm flex items-center gap-2"
-              title="Manage Metrics"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31 2.37 2.37.996.608 2.296.07 2.572-1.065a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-1.066-2.573c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31-2.37-2.37-.996-.608-2.296-.07-2.572 1.065a1.724 1.724 0 002.573-1.066z" />
-              </svg>
-              Settings
-            </button>
             <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-1 flex items-center gap-1">
               <button
                 @click="zoomOut"
@@ -58,6 +48,16 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
               Reset
+            </button>
+            <button
+              @click="showAdmin = true"
+              class="w-10 h-10 bg-white rounded-xl shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors text-gray-600 hover:text-gray-800 flex items-center justify-center"
+              title="Settings"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31 2.37 2.37.996.608 2.296.07 2.572-1.065a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-1.066-2.573c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31-2.37-2.37-.996-.608-2.296-.07-2.572 1.065a1.724 1.724 0 002.573-1.066z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
             </button>
           </div>
         </div>
@@ -163,7 +163,7 @@ import AdminPanel from './components/AdminPanel.vue'
 import type { Church, ChurchData, Stats, Toast } from './types'
 
 const store = useChurchesStore()
-const { scale, translateX, translateY, isDragging, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel, reset } = usePanZoom()
+const { scale, translateX, translateY, isDragging, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel, reset, fitToScreen } = usePanZoom()
 
 const showForm = ref<boolean>(false)
 const showAdmin = ref<boolean>(false)
@@ -179,6 +179,26 @@ const rootChurch = computed<Church | null>(() => store.getChurch('root'))
 const totalStats = computed<Stats>(() => store.totalStats)
 
 const getChildren = (parentId: string | null): Church[] => store.getChildren(parentId)
+
+// Calculate tree statistics for smart zoom
+const calculateTreeStats = (): { totalChurches: number; maxDepth: number } => {
+  let totalChurches = 0
+  let maxDepth = 0
+
+  const traverse = (parentId: string | null, depth: number): void => {
+    const children = getChildren(parentId)
+    totalChurches += children.length
+    maxDepth = Math.max(maxDepth, depth)
+
+    children.forEach(child => {
+      traverse(child.id, depth + 1)
+    })
+  }
+
+  traverse('root', 1)
+
+  return { totalChurches, maxDepth }
+}
 
 const handleSelect = (church: Church): void => {
   // Future: Show church details
@@ -201,6 +221,9 @@ const handleDelete = (id: string): void => {
     try {
       store.deleteChurch(id)
       showToast('Church successfully deleted', 'success')
+      // Adjust zoom after deletion
+      const { totalChurches, maxDepth } = calculateTreeStats()
+      fitToScreen(totalChurches, maxDepth)
     } catch (error) {
       showToast((error as Error).message, 'error')
     }
@@ -221,6 +244,9 @@ const handleSubmit = (data: ChurchData): void => {
     } else {
       store.addChurch(parentId.value, data)
       showToast('New church successfully added', 'success')
+      // Adjust zoom to fit new church
+      const { totalChurches, maxDepth } = calculateTreeStats()
+      fitToScreen(totalChurches, maxDepth)
     }
     closeForm()
   } catch (error) {
@@ -248,7 +274,8 @@ const zoomOut = (): void => {
 }
 
 const resetView = (): void => {
-  reset()
+  const { totalChurches, maxDepth } = calculateTreeStats()
+  fitToScreen(totalChurches, maxDepth)
 }
 
 // Keyboard shortcuts
@@ -260,6 +287,9 @@ const handleKeydown = (e: KeyboardEvent): void => {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
+  // Initialize smart zoom on mount to fit all churches on screen
+  const { totalChurches, maxDepth } = calculateTreeStats()
+  fitToScreen(totalChurches, maxDepth)
 })
 
 onUnmounted(() => {
