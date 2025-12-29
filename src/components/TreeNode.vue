@@ -40,17 +40,17 @@
           <div
             v-for="metric in displayMetrics"
             :key="metric.id"
-            :class="`bg-gradient-to-br from-${metric.gradientFrom} to-${metric.gradientTo} p-3 rounded-xl border ${metric.borderColor} hover:shadow-md transition-all`"
+            :class="`bg-gradient-to-br ${metric.classes.gradientFrom} ${metric.classes.gradientTo} p-3 rounded-xl border ${metric.classes.border} hover:shadow-md transition-all`"
           >
             <div class="flex items-center gap-2">
-              <div :class="`w-6 h-6 bg-${metric.color}-500 rounded-lg flex items-center justify-center`">
+              <div :class="`w-6 h-6 ${metric.classes.bg} rounded-lg flex items-center justify-center`">
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getIconPath(metric.icon)" />
                 </svg>
               </div>
               <div>
-                <div :class="`text-xs text-${metric.color}-600 font-medium`">{{ metric.name }}</div>
-                <div :class="`text-lg font-bold text-${metric.color}-700`">{{ church.metrics[metric.key] }}</div>
+                <div :class="`text-xs ${metric.classes.text} font-medium`">{{ metric.name }}</div>
+                <div :class="`text-lg font-bold ${metric.classes.textDark}`">{{ church.metrics[metric.key] }}</div>
               </div>
             </div>
           </div>
@@ -108,7 +108,8 @@ import { computed } from 'vue'
 import { useMetricsStore } from '../stores/metrics'
 import { availableIcons, getIconPath } from '../constants/icons'
 import { appConfig } from '../config/app.config'
-import type { Church, Icon } from '../types'
+import { getMetricClasses } from '../utils/metricColors'
+import type { Church, Icon, Metric } from '../types'
 import type { PropType } from 'vue'
 
 const metricsStore = useMetricsStore()
@@ -130,8 +131,14 @@ defineProps({
 
 defineEmits(['select', 'add-child', 'edit', 'delete'])
 
-// Display all metrics
-const displayMetrics = computed<Metric[]>(() => {
-  return metricsStore.metrics
+// Display all metrics with color classes
+const displayMetrics = computed(() => {
+  return metricsStore.metrics.map(metric => {
+    const classes = getMetricClasses(metric.color as any)
+    return {
+      ...metric,
+      classes: classes || getMetricClasses('blue') // Fallback to blue if color not found
+    }
+  })
 })
 </script>

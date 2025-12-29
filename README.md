@@ -3,23 +3,23 @@
 A visual church mapping tool designed to help religious organizations map and measure all groups within their movement. Build hierarchical church structures, track key metrics, and visualize your spiritual network.
 
 ![Ekklesia Mapper](https://img.shields.io/badge/Vue-3.5.13-42b883?style=flat&logo=vue.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-3178c6?style=flat&logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4.17-38bdf8?style=flat&logo=tailwind-css&logoColor=white)
 ![Pinia](https://img.shields.io/badge/Pinia-2.3.0-ffd04b?style=flat&logo=pinia&logoColor=white)
 
 ## Features
 
 - **Visual Church Tree**: Interactive hierarchical visualization of your church structure
+- **Smart Zoom**: Automatic zoom adjustment to fit all churches on screen
 - **Pan & Zoom**: Navigate large church structures with intuitive zoom controls
-- **Key Metrics Tracking**: Monitor five essential metrics across all churches:
-  - Members: Total number of people
-  - Baptized: Number of baptized believers
-  - Calling: Connection with God
-  - Community: Connection with family
-  - Commission: Serving others
-  - Reaching: Reaching others
-- **Real-time Statistics**: Live updates of totals and percentages across the entire network
-- **Persistent Storage**: All data saved locally in your browser
+- **Dynamic Metrics System**: Customize and track any metrics important to your movement
+  - Default metrics included: Members, Baptized, Calling, Community, Commission, Reaching
+  - Add custom metrics via Admin Panel
+  - Choose from 6 colors and 20+ icons
+- **Real-time Statistics**: Live updates of totals and percentages in compact stats panel
+- **Persistent Storage**: All data saved locally in your browser (no server required)
 - **Responsive Design**: Beautiful gradient UI with hover effects and smooth transitions
+- **Admin Panel**: Manage your metrics, reorder them, or reset to defaults
 
 ## Getting Started
 
@@ -80,10 +80,20 @@ The built files will be in the `dist` directory.
 
 ### Navigation
 
+- **Smart Zoom**: The app automatically adjusts zoom to fit all churches when loading, adding, or deleting
 - **Zoom In**: Click the + button or use the scroll wheel
 - **Zoom Out**: Click the - button
-- **Reset View**: Click the Reset button to return to default view
+- **Reset View**: Click the Reset button to fit all churches on screen
 - **Pan**: Click and drag on the canvas to move around
+
+### Managing Metrics
+
+1. Click the **Settings icon** (gear) in the top-right of the header
+2. **Add Metric**: Click "Add Metric", choose name, color, and icon
+3. **Edit Metric**: Click the pencil icon on any metric card
+4. **Delete Metric**: Click the trash icon (cannot delete primary metric)
+5. **Reorder**: Drag and drop metrics to change display order
+6. **Reset**: Click "Reset to Defaults" to restore original 6 metrics
 
 ## Project Structure
 
@@ -91,19 +101,35 @@ The built files will be in the `dist` directory.
 ekklesia-mapper/
 ├── src/
 │   ├── components/
-│   │   ├── TreeNode.vue      # Individual church card in the tree
-│   │   ├── ChurchForm.vue    # Modal for adding/editing churches
-│   │   └── StatsPanel.vue    # Floating statistics panel
+│   │   ├── TreeNode.vue         # Individual church card in the tree
+│   │   ├── ChurchForm.vue       # Modal for adding/editing churches
+│   │   ├── StatsPanel.vue       # Compact floating statistics panel
+│   │   ├── AdminPanel.vue       # Settings modal for metrics management
+│   │   ├── MetricList.vue       # List of metrics with drag-and-drop
+│   │   ├── MetricItem.vue       # Individual metric card
+│   │   ├── MetricForm.vue       # Form for adding/editing metrics
+│   │   └── MetricEditModal.vue  # Modal for editing metrics
 │   ├── composables/
-│   │   └── usePanZoom.js     # Pan and zoom functionality
+│   │   └── usePanZoom.ts        # Pan and zoom with smart fit-to-screen
 │   ├── stores/
-│   │   └── churches.js       # Pinia store for church data management
-│   ├── App.vue               # Main application component
-│   └── main.js               # Application entry point
+│   │   ├── churches.ts          # Pinia store for church data management
+│   │   └── metrics.ts           # Pinia store for dynamic metrics
+│   ├── utils/
+│   │   ├── sanitize.ts          # Input sanitization utilities
+│   │   └── metricColors.ts      # Tailwind JIT-compatible color mappings
+│   ├── config/
+│   │   └── app.config.ts        # Centralized app configuration
+│   ├── constants/
+│   │   └── icons.ts             # SVG icon path definitions
+│   ├── types/
+│   │   └── index.ts             # TypeScript type definitions
+│   ├── App.vue                  # Main application component
+│   └── main.ts                  # Application entry point
 ├── index.html
 ├── package.json
-├── vite.config.js
+├── vite.config.ts
 ├── tailwind.config.js
+├── tsconfig.json
 └── postcss.config.js
 ```
 
@@ -111,21 +137,25 @@ ekklesia-mapper/
 
 Each church object contains:
 
-```javascript
+```typescript
 {
-  id: string,           // Unique identifier
-  name: string,         // Church name
-  parentId: string | null,  // Parent church ID (null for Mother Church)
-  metrics: {
-    members: number,    // Total members
-    baptized: number,   // Baptized members
-    calling: number,    // Members with calling
-    community: number,  // Connected with family
-    commission: number, // Serving others
-    reaching: number    // Reaching others
-  }
+  id: string,                    // Unique identifier
+  name: string,                  // Church name
+  parentId: string | null,       // Parent church ID (null for Mother Church)
+  metrics: Record<string, number> // Dynamic metrics based on user configuration
+  // Example:
+  // {
+  //   members: 8,
+  //   baptized: 5,
+  //   calling: 7,
+  //   community: 6,
+  //   commission: 4,
+  //   reaching: 3
+  // }
 }
 ```
+
+**Metrics are fully customizable** - add, edit, delete, and reorder any metrics that matter to your organization.
 
 ## Metrics Explained
 
@@ -139,11 +169,15 @@ The Five Circles of Ekklesia:
 
 ## Data Storage
 
-All church data is stored in your browser's LocalStorage under the key `ekklesia-churches`. This means:
+All data is stored in your browser's LocalStorage:
+- **Churches**: `ekklesia-churches` - All church data with metrics
+- **Metrics**: `ekklesia-metrics` - Metric definitions and configuration
 
+This means:
 - ✅ Data persists across browser sessions
 - ✅ No server required
 - ✅ Works offline
+- ✅ Fully customizable metrics system
 - ⚠️ Data is browser-specific (not synced across devices)
 - ⚠️ Clearing browser data will delete all churches
 
@@ -153,20 +187,26 @@ You can manually backup your data:
 
 **Export** (run in browser console):
 ```javascript
-const data = localStorage.getItem('ekklesia-churches');
-console.log(data);
+const data = {
+  churches: localStorage.getItem('ekklesia-churches'),
+  metrics: localStorage.getItem('ekklesia-metrics')
+};
+console.log(JSON.stringify(data));
 // Copy the output and save it
 ```
 
 **Import** (run in browser console):
 ```javascript
-localStorage.setItem('ekklesia-churches', 'your-pasted-data-here');
+const data = JSON.parse('your-pasted-data-here');
+localStorage.setItem('ekklesia-churches', data.churches);
+localStorage.setItem('ekklesia-metrics', data.metrics);
 location.reload();
 ```
 
 ## Technologies Used
 
-- **Vue 3**: Progressive JavaScript framework
+- **Vue 3**: Progressive JavaScript framework with Composition API
+- **TypeScript**: Type-safe JavaScript for better developer experience
 - **Pinia**: State management for Vue
 - **Tailwind CSS**: Utility-first CSS framework
 - **Vite**: Next generation frontend tooling

@@ -21,7 +21,7 @@ This document provides essential context for AI agents working on the Ekklesia M
 - Mother Church cannot be deleted
 
 ### Metrics System
-Every church tracks 6 metrics:
+Every church tracks metrics (default 6):
 1. **members**: Total count (base number)
 2. **baptized**: Cannot exceed members
 3. **calling**: Cannot exceed members
@@ -29,7 +29,9 @@ Every church tracks 6 metrics:
 5. **commission**: Cannot exceed members
 6. **reaching**: Cannot exceed members
 
-**Validation Rule**: All 5 secondary metrics must be ≤ members
+**Validation Rule**: All secondary metrics must be ≤ members
+**Customizable**: Users can add/edit/delete metrics via Admin Panel
+**Storage**: Metrics stored in LocalStorage under `ekklesia-metrics`
 
 ### Statistics Calculation
 - **Current Behavior**: ALL churches are counted (including Mother Church)
@@ -50,15 +52,13 @@ Every church tracks 6 metrics:
    - Contribute to totals
 
 3. **Metrics Validation**
-   - baptized ≤ members
-   - calling ≤ members
-   - community ≤ members
-   - commission ≤ members
-   - reaching ≤ members
+   - All non-primary metrics ≤ primary metric value
+   - Validation happens in stores/churches.ts
+   - Error messages shown in ChurchForm modal
 
 ## File Structure & Responsibilities
 
-### `/src/stores/churches.js`
+### `/src/stores/churches.ts`
 **Purpose**: Pinia store for church state management
 
 **Key Functions**:
@@ -71,15 +71,28 @@ Every church tracks 6 metrics:
 
 **Important**: All metric validations happen here before save
 
+### `/src/stores/metrics.ts`
+**Purpose**: Pinia store for dynamic metrics management
+
+**Key Functions**:
+- `getPrimaryMetric()` - Get the primary metric (usually "members")
+- `addMetric(data)` - Add new custom metric
+- `updateMetric(id, data)` - Update existing metric
+- `deleteMetric(id)` - Delete metric (except primary)
+- `reorderMetrics(newOrder)` - Reorder metrics for display
+- `resetToDefaults()` - Reset to 6 default metrics
+
+**Storage**: LocalStorage key `ekklesia-metrics`
+
 ### `/src/components/TreeNode.vue`
 **Purpose**: Recursive component rendering individual church cards
 
 **Features**:
 - Displays church name (centered, large)
-- Shows 6 metrics in 3-column grid
+- Shows metrics in 3-column grid
 - Action buttons: Child, Edit, Delete
 - Renders children recursively with connector lines
-- Handles connector line rendering
+- Uses `metricColors` helper for Tailwind JIT compatibility
 
 **Emits**: select, add-child, edit, delete
 
@@ -88,33 +101,105 @@ Every church tracks 6 metrics:
 
 **Features**:
 - Dynamic title (Add vs Edit mode)
-- Real-time validation
-- Error messages for invalid metrics
+- Real-time validation with error messages
+- Dynamic metric fields based on current metrics
+- Primary metric highlighted with different styling
 - Form resets on open
 
 ### `/src/components/StatsPanel.vue`
 **Purpose**: Floating panel showing aggregated statistics
 
 **Features**:
-- Collapsible/expandable
-- Shows totals and percentages
-- Progress bars for visual representation
-- Metrics grid display
+- Collapsed state shows primary metric total
+- Expanded state shows all metrics with progress bars
+- Format: "Total (Percentage)" e.g., "8 (100%)"
+- Compact design (~60% smaller than before)
+- Auto-adjusts height to content (max 50vh)
 
-### `/src/composables/usePanZoom.js`
+### `/src/components/AdminPanel.vue`
+**Purpose**: Settings modal for managing metrics
+
+**Features**:
+- Drag-and-drop metric reordering
+- Add new custom metrics
+- Edit existing metrics (name, color, icon)
+- Delete metrics (except primary)
+- Reset to default metrics
+
+### `/src/composables/usePanZoom.ts`
 **Purpose**: Pan and zoom functionality for canvas
 
 **Returns**: scale, translateX, translateY, isDragging, event handlers
 
+**New Feature**: Smart zoom with `fitToScreen(totalChurches, maxDepth)`
+- Automatically calculates optimal zoom level
+- Considers tree width (churches × card width + spacing)
+- Considers tree depth (levels × level height)
+- Clamps to reasonable range (0.15 - 1.0)
+- Called on mount, add, delete, and reset
+
+### `/src/utils/metricColors.ts`
+**Purpose**: Tailwind JIT-compatible color class mappings
+
+**Why Needed**: Tailwind's JIT compiler can't recognize dynamic template literal classes like `` `bg-${color}-500` ``
+
+**Exports**:
+- `MetricColor` type: 'blue' | 'green' | 'purple' | 'yellow' | 'orange' | 'pink'
+- `metricColorClasses`: Record with all color classes (bg, text, border, gradients)
+- `getMetricClasses(color)`: Returns class mapping for given color
+
+**Usage**:
+```typescript
+import { getMetricClasses } from '../utils/metricColors'
+const classes = getMetricClasses('blue')
+// classes.bg → 'bg-blue-500'
+// classes.text → 'text-blue-600'
+```
+
+### `/src/config/app.config.ts`
+**Purpose**: Centralized application configuration
+
+**Contains**:
+- Storage keys (CHURCHES, METRICS)
+- Validation rules (max lengths, min values)
+- Zoom settings (min/max scale, factors)
+- Default values (church name, primary metric = 8)
+- UI settings (toast duration)
+
+**Default Primary Metric**: Changed from 50 to 8 for realistic initial data
+
 ## Common Tasks
 
-### Adding a New Metric
-1. Update initial data in `churches.js` (default Mother Church)
-2. Add metric display in `TreeNode.vue` metrics grid
-3. Add metric field in `ChurchForm.vue`
-4. Add validation in `churches.js` (addChurch/updateChurch)
-5. Update totalStats calculation in `churches.js`
-6. Add metric display in `StatsPanel.vue`
+### Adding a New Metric (via UI)
+1. Open Admin Panel (Settings icon in header)
+2. Click "Add Metric" button
+3. Fill in name, select color and icon
+4. Click "Add"
+5. Metric is automatically available in all forms
+
+### Adding a New Metric (Programmatically)
+1. Import metricsStore: `import { useMetricsStore } from '../stores/metrics'`
+2. Call: `metricsStore.addMetric({ name: 'New Metric', color: 'blue', icon: 'star' })`
+3. The store automatically adds it to all churches with value 0
+
+### Customizing Metric Colors
+**IMPORTANT**: Use `metricColors.ts` helper - do NOT use template literals!
+
+❌ **WRONG** (breaks with Tailwind JIT):
+```vue
+:class="`bg-${metric.color}-500`"
+```
+
+✅ **CORRECT**:
+```vue
+<script setup>
+import { getMetricClasses } from '../utils/metricColors'
+const classes = getMetricClasses(metric.color)
+</script>
+<template>
+  <div :class="classes.bg"></div>
+</template>
+```
 
 ### Changing Connector Lines
 Location: `/src/components/TreeNode.vue` lines ~142-180
@@ -127,27 +212,43 @@ Current approach:
 ### Modifying Card Layout
 Location: `/src/components/TreeNode.vue`
 
-Card container: line ~5 (min-w-[480px])
+Card container: line ~4 (min-w-[480px])
 Header: lines ~12-36
-Metrics grid: line ~39 (grid-cols-3)
-Buttons: line ~127-138
+Metrics grid: lines ~39-57 (grid-cols-3)
+Buttons: lines ~59-70
 
 ## State Management
 
-**Store**: Pinia (`/src/stores/churches.js`)
+**Stores**: Pinia (TypeScript)
 
+### `/src/stores/churches.ts`
 **State**:
-```javascript
-churches: ref([])  // Array of all church objects
+```typescript
+churches: ref<Church[]>([])  // Array of all church objects
 ```
 
 **Computed**:
-```javascript
-totalStats: computed(() => ({
-  totals: { members, baptized, calling, community, commission, reaching },
-  percentages: { baptized, calling, community, commission, reaching }
+```typescript
+totalStats: computed<Stats>(() => ({
+  totals: Record<string, number>,    // Sum of each metric
+  percentages: Record<string, number> // Percent relative to primary
 }))
 ```
+
+### `/src/stores/metrics.ts`
+**State**:
+```typescript
+metrics: ref<Metric[]>([])  // Array of metric definitions
+```
+
+**Key Properties per Metric**:
+- `id`: Unique identifier
+- `name`: Display name
+- `key`: Storage key (lowercase, underscore-separated)
+- `color`: One of 6 colors (blue, green, purple, yellow, orange, pink)
+- `icon`: Icon identifier
+- `isPrimary`: Boolean (only one metric can be primary)
+- `order`: Display order
 
 ## UI Patterns
 
@@ -293,8 +394,17 @@ Potential improvements:
 - Look for orphaned churches (invalid parentId)
 - Check for duplicate IDs
 - Verify metric constraints
+- **Check Tailwind JIT issues**: If colors aren't showing, ensure `metricColors` helper is used
+- **Smart zoom issues**: Check `fitToScreen` calculations in usePanZoom
 
 ---
 
-**Last Updated**: December 2025
-**Framework Version**: Vue 3.5.13, Pinia 2.3.0
+**Last Updated**: December 29, 2025
+**Framework Version**: Vue 3.5.13, Pinia 2.3.0, TypeScript 5.7.3
+**Major Recent Updates**:
+- Smart zoom for automatic tree fitting
+- Compact StatsPanel design (60% smaller)
+- Dynamic metrics system with Admin Panel
+- Tailwind JIT-compatible color system
+- Default primary metric changed to 8
+

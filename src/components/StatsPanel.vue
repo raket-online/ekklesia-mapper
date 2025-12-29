@@ -9,7 +9,7 @@
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
-      <span class="font-semibold">{{ stats.totals[primaryMetric.key] }} {{ primaryMetric.name }}</span>
+      <span class="font-semibold">{{ stats.totals[allMetrics[0].key] }} {{ allMetrics[0].name }}</span>
       <svg class="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
       </svg>
@@ -37,54 +37,31 @@
       </div>
 
       <!-- Content -->
-      <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-        <!-- Total Primary Metric -->
-        <div
-          class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100"
-        >
-          <div class="flex items-center justify-between">
-            <span class="text-blue-900 font-semibold">Total {{ primaryMetric.name }}</span>
-            <span class="text-3xl font-bold text-blue-600">{{ stats.totals[primaryMetric.key] }}</span>
-          </div>
-        </div>
-
-        <!-- Metrics Grid -->
-        <div class="grid grid-cols-2 gap-3">
+      <div class="p-4 space-y-3 max-h-[50vh] overflow-y-auto">
+        <!-- All Metrics with Progress Bars -->
+        <div class="space-y-2">
           <div
-            v-for="metric in displayMetrics"
+            v-for="metric in allMetrics"
             :key="metric.id"
-            :class="`bg-white rounded-lg p-3 border-2 ${metric.borderColor} hover:border-${metric.color}-400 hover:shadow-md transition-all duration-300 group`"
+            :class="`${metric.classes.bgLight} rounded-lg p-3 border ${metric.classes.border}`"
           >
-            <div class="flex items-center gap-2 mb-2">
-              <div
-                :class="`w-8 h-8 bg-${metric.color}-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`"
-              >
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getIconPath(metric.icon)" />
-                </svg>
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div :class="`w-6 h-6 ${metric.classes.bg} rounded flex items-center justify-center`">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getIconPath(metric.icon)" />
+                  </svg>
+                </div>
+                <span :class="`text-sm font-semibold ${metric.classes.text900}`">{{ metric.name }}</span>
               </div>
-              <span :class="`text-xs font-medium text-${metric.color}-700`">{{ metric.name }}</span>
+              <span :class="`text-lg font-bold ${metric.classes.text}`">{{ stats.totals[metric.key] }} ({{ stats.percentages[metric.key] }}%)</span>
             </div>
-            <div :class="`text-2xl font-bold text-${metric.color}-600`">{{ stats.totals[metric.key] }}</div>
-            <div :class="`text-sm text-${metric.color}-500 font-medium`">{{ stats.percentages[metric.key] }}%</div>
-          </div>
-        </div>
-
-        <!-- Progress Bars -->
-        <div class="space-y-2 pt-2">
-          <div
-            v-for="metric in displayMetrics"
-            :key="metric.id"
-            class="flex items-center gap-2"
-          >
-            <span class="text-xs font-medium text-gray-600 w-20">{{ metric.name }}</span>
-            <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div class="bg-white rounded-full h-2 overflow-hidden">
               <div
-                :class="`bg-gradient-to-r from-${metric.color}-400 to-${metric.color}-600 h-full rounded-full transition-all duration-1000 ease-out`"
+                :class="`bg-gradient-to-r ${metric.classes.gradientFrom400} ${metric.classes.gradientTo600} h-full rounded-full transition-all duration-1000 ease-out`"
                 :style="{ width: stats.percentages[metric.key] + '%' }"
               ></div>
             </div>
-            <span class="text-xs font-medium text-gray-600 w-10 text-right">{{ stats.percentages[metric.key] }}%</span>
           </div>
         </div>
       </div>
@@ -96,6 +73,7 @@
 import { ref, computed } from 'vue'
 import { useMetricsStore } from '../stores/metrics'
 import { availableIcons, getIconPath } from '../constants/icons'
+import { getMetricClasses } from '../utils/metricColors'
 import type { Stats, Metric } from '../types'
 import type { PropType } from 'vue'
 
@@ -110,11 +88,18 @@ const metricsStore = useMetricsStore()
 
 const isExpanded = ref<boolean>(true)
 
-// Get primary metric
-const primaryMetric = computed<Metric>(() => metricsStore.getPrimaryMetric())
-
-// Get display metrics (all except primary)
-const displayMetrics = computed<Metric[]>(() => metricsStore.metrics.filter(m => !m.isPrimary))
+// Get all metrics (primary + others) for unified display with color classes
+const allMetrics = computed(() => {
+  const primary = metricsStore.getPrimaryMetric()
+  const others = metricsStore.metrics.filter(m => !m.isPrimary)
+  return [primary, ...others].map(metric => {
+    const classes = getMetricClasses(metric.color as any)
+    return {
+      ...metric,
+      classes: classes || getMetricClasses('blue') // Fallback to blue if color not found
+    }
+  })
+})
 
 const toggle = (): void => {
   isExpanded.value = !isExpanded.value
