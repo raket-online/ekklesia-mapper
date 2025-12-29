@@ -38,12 +38,10 @@ export const useChurchesStore = defineStore('churches', () => {
             name: appConfig.defaults.ROOT_CHURCH_NAME,
             parentId: null,
             metrics: {
-              members: 50,
-              baptized: 40,
-              calling: 35,
-              community: 38,
-              commission: 25,
-              reaching: 20
+              participants: 10,
+              christians: 8,
+              baptized: 6,
+              reaching_out: 0
             }
           }
         ]
@@ -58,12 +56,10 @@ export const useChurchesStore = defineStore('churches', () => {
           name: appConfig.defaults.ROOT_CHURCH_NAME,
           parentId: null,
           metrics: {
-            members: 50,
-            baptized: 40,
-            calling: 35,
-            community: 38,
-            commission: 25,
-            reaching: 20
+            participants: 10,
+            christians: 8,
+            baptized: 6,
+            reaching_out: 0
           }
         }
       ]

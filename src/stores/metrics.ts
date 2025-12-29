@@ -25,9 +25,9 @@ export const useMetricsStore = defineStore('metrics', () => {
   // Default metrics configuration
   const defaultMetrics: Metric[] = [
     {
-      id: 'members',
-      name: 'Members',
-      key: 'members',
+      id: 'participants',
+      name: 'Participants',
+      key: 'participants',
       color: 'blue',
       gradientFrom: 'blue-50',
       gradientTo: 'blue-100',
@@ -37,9 +37,9 @@ export const useMetricsStore = defineStore('metrics', () => {
       isPrimary: true
     },
     {
-      id: 'baptized',
-      name: 'Baptized',
-      key: 'baptized',
+      id: 'christians',
+      name: 'Christians',
+      key: 'christians',
       color: 'green',
       gradientFrom: 'green-50',
       gradientTo: 'green-100',
@@ -49,9 +49,9 @@ export const useMetricsStore = defineStore('metrics', () => {
       isPrimary: false
     },
     {
-      id: 'calling',
-      name: 'Calling',
-      key: 'calling',
+      id: 'baptized',
+      name: 'Baptized',
+      key: 'baptized',
       color: 'purple',
       gradientFrom: 'purple-50',
       gradientTo: 'purple-100',
@@ -61,39 +61,15 @@ export const useMetricsStore = defineStore('metrics', () => {
       isPrimary: false
     },
     {
-      id: 'community',
-      name: 'Community',
-      key: 'community',
-      color: 'yellow',
-      gradientFrom: 'yellow-50',
-      gradientTo: 'yellow-100',
-      borderColor: 'yellow-200',
-      icon: 'heart',
-      order: 3,
-      isPrimary: false
-    },
-    {
-      id: 'commission',
-      name: 'Commission',
-      key: 'commission',
-      color: 'orange',
-      gradientFrom: 'orange-50',
-      gradientTo: 'orange-100',
-      borderColor: 'orange-200',
-      icon: 'shepherd',
-      order: 4,
-      isPrimary: false
-    },
-    {
-      id: 'reaching',
-      name: 'Reaching',
-      key: 'reaching',
+      id: 'reaching_out',
+      name: 'Reaching out',
+      key: 'reaching_out',
       color: 'pink',
       gradientFrom: 'pink-50',
       gradientTo: 'pink-100',
       borderColor: 'pink-200',
       icon: 'globe',
-      order: 5,
+      order: 3,
       isPrimary: false
     }
   ]

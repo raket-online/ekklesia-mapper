@@ -38,10 +38,30 @@
 
       <!-- Content -->
       <div class="p-4 space-y-3 max-h-[50vh] overflow-y-auto">
-        <!-- All Metrics with Progress Bars -->
+        <!-- Primary Metric (Large, No Percentage, No Progress Bar) -->
+        <div
+          :class="`${allMetrics[0].classes.bgLight} rounded-xl p-4 border-2 ${allMetrics[0].classes.border} mb-4`"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div :class="`w-10 h-10 ${allMetrics[0].classes.bgDark} rounded-xl flex items-center justify-center shadow-lg`">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getIconPath(allMetrics[0].icon)" />
+                </svg>
+              </div>
+              <div>
+                <span :class="`text-sm font-semibold ${allMetrics[0].classes.text900} uppercase tracking-wide`">{{ allMetrics[0].name }}</span>
+                <p class="text-xs text-gray-500">Total count</p>
+              </div>
+            </div>
+            <span :class="`text-4xl font-bold ${allMetrics[0].classes.text}`">{{ stats.totals[allMetrics[0].key] }}</span>
+          </div>
+        </div>
+
+        <!-- Other Metrics with Progress Bars -->
         <div class="space-y-2">
           <div
-            v-for="metric in allMetrics"
+            v-for="metric in allMetrics.slice(1)"
             :key="metric.id"
             :class="`${metric.classes.bgLight} rounded-lg p-3 border ${metric.classes.border}`"
           >
