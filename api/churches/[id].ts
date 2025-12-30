@@ -6,9 +6,9 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { requireAuth, validateBody, handleError, sendJSON, sendNoContent } from '../lib/helpers'
-import { schemas } from '../lib/validation'
-import { queries } from '../lib/queries'
+import { requireAuth, validateBody, handleError, sendJSON, sendNoContent } from '../../server/helpers'
+import { schemas } from '../../server/validation'
+import { queries } from '../../server/queries'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

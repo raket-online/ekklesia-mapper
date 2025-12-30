@@ -4,7 +4,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { auth } from '../lib/auth'
+import { auth } from '../../server/auth'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

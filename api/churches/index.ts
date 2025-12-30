@@ -5,9 +5,9 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { requireAuth, validateBody, handleError, sendJSON } from '../lib/helpers'
-import { schemas } from '../lib/validation'
-import { queries } from '../lib/queries'
+import { requireAuth, validateBody, handleError, sendJSON } from '../../server/helpers'
+import { schemas } from '../../server/validation'
+import { queries } from '../../server/queries'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         id: crypto.randomUUID(),
         userId: user.id,
         name,
-        parentId,
+        parentId: parentId ?? null,
         metrics
       })
 
