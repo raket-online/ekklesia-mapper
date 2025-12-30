@@ -1,5 +1,11 @@
 {
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" }
-  ]
+  ],
+  "functions": {
+    "api/index.ts": {
+      "runtime": "nodejs18.x",
+      "includeFiles": ["src/**/*.ts"]
+    }
+  }
 }
