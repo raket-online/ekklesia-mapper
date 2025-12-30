@@ -25,13 +25,13 @@ npx esbuild src/api/index.ts \
   --format=cjs \
   --outfile=.vercel/output/functions/api.func/index.js
 
-# Build test handler
-echo "⚡ Building test handler..."
+# Build test handler for Edge runtime
+echo "⚡ Building test handler (Edge runtime)..."
 npx esbuild src/api/test.ts \
   --bundle \
-  --platform=node \
+  --platform=browser \
   --target=es2020 \
-  --format=cjs \
+  --format=esm \
   --outfile=.vercel/output/functions/test.func/index.js
 
 # Create package.json in function directory to specify CommonJS
@@ -61,9 +61,7 @@ EOF
 
 cat > .vercel/output/functions/test.func/.vc-config.json << 'EOF'
 {
-  "runtime": "nodejs20.x",
-  "handler": "index.default",
-  "launcherType": "Nodejs"
+  "runtime": "edge"
 }
 EOF
 

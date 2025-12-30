@@ -1,15 +1,11 @@
-// Simple test handler to verify Vercel function works
-// With launcherType: "Nodejs", Vercel expects traditional Node.js (req, res) format
-import type { IncomingMessage, ServerResponse } from 'http'
-
-export default async (req: IncomingMessage, res: ServerResponse) => {
-  res.statusCode = 200
-  res.setHeader('Content-Type', 'application/json')
-  res.end(JSON.stringify({
+// Edge runtime test handler - uses Web API Request/Response
+export default async function handler(request: Request) {
+  return new Response(JSON.stringify({
     status: 'ok',
-    message: 'Test handler works',
-    timestamp: new Date().toISOString(),
-    url: req.url,
-    method: req.method
-  }))
+    runtime: 'edge',
+    url: request.url
+  }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
+  })
 }
