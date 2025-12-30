@@ -9,5 +9,9 @@ app.use(notFoundHandler)
 app.use(errorHandler)
 
 // Export as Vercel serverless function handler using serverless-http adapter
-// This converts Vercel's request/response to Express-compatible format
-export default serverless(app)
+// Configure for Node.js runtime (not AWS Lambda)
+const handler = serverless(app, {
+  provider: 'vercel'
+})
+
+export default handler
