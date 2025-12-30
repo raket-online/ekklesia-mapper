@@ -151,6 +151,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const method = req.method || 'GET'
 
   try {
+    // Auth routes - delegate to Better Auth
+    if (pathStr.startsWith('auth/') || pathStr === 'auth') {
+      const protocol = req.headers['x-forwarded-proto'] || 'http'
+      const host = req.headers.host
+      const url = `${protocol}://${host}${req.url}`
+
+      const headers = new Headers()
+      Object.entries(req.headers).forEach(([key, value]) => {
+        if (value) {
+          if (Array.isArray(value)) value.forEach(v => headers.append(key, v))
+          else headers.append(key, String(value))
+        }
+      })
+
+      let body: string | undefined
+      if (req.body && Object.keys(req.body).length > 0) {
+        body = JSON.stringify(req.body)
+      }
+
+      const webRequest = new Request(url, {
+        method: req.method || 'GET',
+        headers,
+        body,
+        // @ts-ignore
+        duplex: 'half'
+      })
+
+      const authResponse = await auth.handler(webRequest)
+
+      if (authResponse) {
+        authResponse.headers.forEach((value, key) => res.setHeader(key, value))
+        const responseBody = await authResponse.text()
+        return res.status(authResponse.status).send(responseBody)
+      } else {
+        return res.status(404).json({ error: 'Auth route not found' })
+      }
+    }
+
     // Health check
     if (pathStr === 'health') {
       return res.status(200).json({ status: 'ok', timestamp: new Date().toISOString(), version: '2.0.0' })
