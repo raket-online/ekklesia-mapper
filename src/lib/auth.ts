@@ -5,6 +5,12 @@ import * as schema from "./schema"
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173",
+  trustedOrigins: [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    // Vercel preview deployments
+    /^https:\/\/ekklesia-mapper.*\.vercel\.app$/,
+  ],
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
