@@ -171,7 +171,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (pathStr.startsWith('auth/') || pathStr === 'auth') {
       const protocol = req.headers['x-forwarded-proto'] || 'http'
       const host = req.headers.host
-      const url = `${protocol}://${host}${req.url}`
+      // Reconstruct clean URL without Vercel's query params
+      const cleanPath = `/api/${pathStr}`
+      const url = `${protocol}://${host}${cleanPath}`
+
+      console.log('[Auth] Routing to Better Auth:', { pathStr, cleanPath, url })
 
       const headers = new Headers()
       Object.entries(req.headers).forEach(([key, value]) => {
