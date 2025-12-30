@@ -4,8 +4,8 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { requireAuth, handleError, sendJSON } from '../../src/lib/vercel-helpers'
-import { queries } from '../../src/lib/db/queries'
+import { requireAuth, handleError, sendJSON } from '../lib/helpers'
+import { queries } from '../lib/queries'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
