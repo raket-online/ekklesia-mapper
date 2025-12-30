@@ -16,20 +16,20 @@ mkdir -p .vercel/output/functions/api.func
 # Copy static files
 cp -r dist/* .vercel/output/static/
 
-# Build API serverless function (bundle everything)
+# Build API serverless function (bundle everything as CommonJS)
 echo "⚡ Building API function..."
 npx esbuild src/api/index.ts \
   --bundle \
   --platform=node \
   --target=es2020 \
-  --format=esm \
-  --outfile=.vercel/output/functions/api.func/index.mjs
+  --format=cjs \
+  --outfile=.vercel/output/functions/api.func/index.js
 
 # Create function config
 cat > .vercel/output/functions/api.func/.vc-config.json << 'EOF'
 {
   "runtime": "nodejs20.x",
-  "handler": "index.mjs",
+  "handler": "index.js",
   "launcherType": "Nodejs"
 }
 EOF
