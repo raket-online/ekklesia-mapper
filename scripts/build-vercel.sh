@@ -29,7 +29,7 @@ npx esbuild src/api/index.ts \
 cat > .vercel/output/functions/api.func/.vc-config.json << 'EOF'
 {
   "runtime": "nodejs20.x",
-  "handler": "index.js",
+  "handler": "index.default",
   "launcherType": "Nodejs"
 }
 EOF
