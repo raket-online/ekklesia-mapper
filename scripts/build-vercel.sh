@@ -25,6 +25,15 @@ npx esbuild src/api/index.ts \
   --format=cjs \
   --outfile=.vercel/output/functions/api.func/index.js
 
+# Build test handler
+echo "⚡ Building test handler..."
+npx esbuild src/api/test.ts \
+  --bundle \
+  --platform=node \
+  --target=es2020 \
+  --format=cjs \
+  --outfile=.vercel/output/functions/test.func/index.js
+
 # Create package.json in function directory to specify CommonJS
 cat > .vercel/output/functions/api.func/package.json << 'EOF'
 {
@@ -34,6 +43,23 @@ EOF
 
 # Create function config
 cat > .vercel/output/functions/api.func/.vc-config.json << 'EOF'
+{
+  "runtime": "nodejs20.x",
+  "handler": "index.default",
+  "launcherType": "Nodejs"
+}
+EOF
+
+# Create test function directory structure
+mkdir -p .vercel/output/functions/test.func
+
+cat > .vercel/output/functions/test.func/package.json << 'EOF'
+{
+  "type": "commonjs"
+}
+EOF
+
+cat > .vercel/output/functions/test.func/.vc-config.json << 'EOF'
 {
   "runtime": "nodejs20.x",
   "handler": "index.default",
