@@ -25,6 +25,13 @@ npx esbuild src/api/index.ts \
   --format=cjs \
   --outfile=.vercel/output/functions/api.func/index.js
 
+# Create package.json in function directory to specify CommonJS
+cat > .vercel/output/functions/api.func/package.json << 'EOF'
+{
+  "type": "commonjs"
+}
+EOF
+
 # Create function config
 cat > .vercel/output/functions/api.func/.vc-config.json << 'EOF'
 {
