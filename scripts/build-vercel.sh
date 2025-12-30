@@ -23,7 +23,7 @@ npx esbuild src/api/index.ts \
   --platform=node \
   --target=es2020 \
   --format=esm \
-  --outfile=.vercel/output/functions/api.func/index.js \
+  --outfile=.vercel/output/functions/api.func/index.mjs \
   --external:express \
   --external:cors \
   --external:helmet \
@@ -40,7 +40,7 @@ npx esbuild src/api/index.ts \
 cat > .vercel/output/functions/api.func/.vc-config.json << 'EOF'
 {
   "runtime": "nodejs20.x",
-  "handler": "index.default",
+  "handler": "index.mjs",
   "launcherType": "Nodejs"
 }
 EOF
