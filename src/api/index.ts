@@ -1,6 +1,6 @@
+import serverless from 'serverless-http'
 import { createApiApp } from './app-factory'
 import { errorHandler, notFoundHandler } from '../middleware/error.middleware'
-import type { Request, Response } from 'express'
 
 const app = createApiApp()
 
@@ -8,8 +8,6 @@ const app = createApiApp()
 app.use(notFoundHandler)
 app.use(errorHandler)
 
-// Export as Vercel serverless function handler
-// Vercel expects a function, not an Express app object
-export default (req: Request, res: Response) => {
-  return app(req, res)
-}
+// Export as Vercel serverless function handler using serverless-http adapter
+// This converts Vercel's request/response to Express-compatible format
+export default serverless(app)
