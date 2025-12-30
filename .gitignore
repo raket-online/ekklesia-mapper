@@ -12,8 +12,8 @@ dist
 dist-ssr
 *.local
 
-# Built API files (generated during build)
-api/**/*.js
+# Vercel build output
+.vercel/output
 
 # Editor directories and files
 .vscode/*
