@@ -7,7 +7,7 @@ npx esbuild api/\[...path\].ts \
   --platform=node \
   --target=es2020 \
   --format=cjs \
-  --outfile=api/\[...path\].js \
+  --outfile=api/\[...path\].cjs \
   --external:@vercel/node
 
 echo "✅ API function bundled"

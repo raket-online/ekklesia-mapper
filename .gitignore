@@ -17,6 +17,7 @@ dist-ssr
 
 # API build output
 api/**/*.js
+api/**/*.cjs
 !api/**/*.ts
 
 # Editor directories and files
