@@ -150,6 +150,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pathStr = Array.isArray(path) ? path.join('/') : path || ''
   const method = req.method || 'GET'
 
+  // Debug endpoint
+  if (pathStr === 'debug') {
+    return res.status(200).json({
+      path,
+      pathStr,
+      url: req.url,
+      method,
+      query: req.query
+    })
+  }
+
   try {
     // Auth routes - delegate to Better Auth
     if (pathStr.startsWith('auth/') || pathStr === 'auth') {
