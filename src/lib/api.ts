@@ -5,7 +5,9 @@
 
 import { z } from 'zod'
 
-const API_BASE = import.meta.env.VITE_API_URL || ''
+// For Vercel/production: use current hostname (empty string = relative URLs)
+// For local dev: use VITE_API_URL from .env if provided
+const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : '')
 
 // ============================================================================
 // Validation Schemas
