@@ -1,14 +1,19 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useMetricsStore } from './metrics'
+import { useAuth } from '../composables/useAuth'
 import { appConfig } from '../config/app.config'
 import { sanitizeAndTruncate, isSafeInput } from '../utils/sanitize'
-import type { Church, ChurchData, Stats } from '../types'
+import { api, APIError } from '../lib/api'
+import type { ChurchData, Stats } from '../types'
 
 export const useChurchesStore = defineStore('churches', () => {
   // State
-  const churches = ref<Church[]>([])
+  const churches = ref<any[]>([])
+  const isLoading = ref<boolean>(false)
+  const error = ref<string | null>(null)
   const metricsStore = useMetricsStore()
+  const auth = useAuth()
 
   // Sanitize church name with XSS protection
   const sanitizeChurchName = (name: unknown): string => {
@@ -24,84 +29,95 @@ export const useChurchesStore = defineStore('churches', () => {
     return sanitized
   }
 
-  // Load from localStorage on init
-  const loadFromStorage = (): void => {
+  // Load churches from API
+  const loadFromAPI = async (): Promise<void> => {
     try {
-      const saved = localStorage.getItem(appConfig.storage.CHURCHES)
-      if (saved) {
-        churches.value = JSON.parse(saved) as Church[]
-      } else {
-        // Initialize with a root church
-        churches.value = [
-          {
-            id: appConfig.defaults.ROOT_CHURCH_ID,
-            name: appConfig.defaults.ROOT_CHURCH_NAME,
-            parentId: null,
-            metrics: {
-              participants: 10,
-              christians: 8,
-              baptized: 6,
-              reaching_out: 0
-            }
-          }
-        ]
-        saveToStorage()
+      isLoading.value = true
+      error.value = null
+
+      churches.value = await api.churches.list()
+
+      // If no churches exist, create root church
+      if (churches.value.length === 0) {
+        await createRootChurch()
       }
-    } catch (error) {
-      console.error('Failed to load churches from localStorage:', error)
-      // Initialize with default data on error
-      churches.value = [
-        {
-          id: appConfig.defaults.ROOT_CHURCH_ID,
-          name: appConfig.defaults.ROOT_CHURCH_NAME,
-          parentId: null,
-          metrics: {
-            participants: 10,
-            christians: 8,
-            baptized: 6,
-            reaching_out: 0
-          }
+    } catch (err) {
+      console.error('Failed to load churches from API:', err)
+
+      if (err instanceof APIError) {
+        if (err.status === 401) {
+          error.value = 'Please sign in to view your churches'
+        } else {
+          error.value = err.message
         }
-      ]
+      } else {
+        error.value = err instanceof Error ? err.message : 'Failed to load churches'
+      }
+
+      // On error, initialize with empty state
+      churches.value = []
+    } finally {
+      isLoading.value = false
     }
   }
 
-  // Save to localStorage
-  const saveToStorage = (): void => {
+  // Create root church
+  const createRootChurch = async (): Promise<void> => {
     try {
-      localStorage.setItem(appConfig.storage.CHURCHES, JSON.stringify(churches.value))
-    } catch (error) {
-      console.error('Failed to save churches to localStorage:', error)
-      // Optionally show user notification
-      if (error instanceof Error && error.name === 'QuotaExceededError') {
-        alert('Storage quota exceeded. Unable to save changes.')
-      }
+      const newChurch = await api.churches.create(null, {
+        name: appConfig.defaults.ROOT_CHURCH_NAME,
+        parentId: null,
+        metrics: {
+          participants: 10,
+          christians: 8,
+          baptized: 6,
+          reaching_out: 0
+        } as Record<string, number>
+      })
+
+      churches.value = [newChurch]
+    } catch (err) {
+      console.error('Failed to create root church:', err)
     }
   }
 
   // Ensure all churches have all metrics (add new metrics with value 0)
-  const ensureMetrics = (): void => {
+  const ensureMetrics = async (): Promise<void> => {
     const metrics = metricsStore.metrics
+    let needsUpdate = false
+
     churches.value.forEach(church => {
       metrics.forEach(metric => {
         if (metric.isPrimary) {
           // Ensure primary metric (members) exists
           if (church.metrics[metric.key] === undefined) {
             church.metrics[metric.key] = appConfig.defaults.DEFAULT_PRIMARY_METRIC_VALUE
+            needsUpdate = true
           }
         } else {
           // Add non-primary metrics with 0 if they don't exist
           if (church.metrics[metric.key] === undefined) {
             church.metrics[metric.key] = appConfig.defaults.DEFAULT_METRIC_VALUE
+            needsUpdate = true
           }
         }
       })
     })
-    saveToStorage()
+
+    // Update churches on server if needed
+    if (needsUpdate) {
+      for (const church of churches.value) {
+        await updateChurch(church.id, { 
+          name: church.name, 
+          parentId: church.parentId,
+          metrics: church.metrics 
+        })
+      }
+    }
   }
 
   // Get children of a church
-  const getChildren = (parentId: string | null): Church[] => {
+  const getChildren = (parentId: string | null): any[] => {
     return churches.value.filter(c => c.parentId === parentId)
   }
 
@@ -125,7 +141,7 @@ export const useChurchesStore = defineStore('churches', () => {
   }
 
   // Add a new church
-  const addChurch = (parentId: string | null, data: ChurchData): Church => {
+  const addChurch = async (parentId: string | null, data: ChurchData): Promise<any> => {
     // Validate metrics dynamically
     validateMetrics(data.metrics)
 
@@ -135,19 +151,42 @@ export const useChurchesStore = defineStore('churches', () => {
       throw new Error('Church name is required')
     }
 
-    const newChurch: Church = {
-      id: 'church-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
-      parentId,
-      name: sanitizedName,
-      metrics: { ...data.metrics }
+    // Validate parent exists (if parentId is provided)
+    if (parentId !== null) {
+      const parentExists = churches.value.some(c => c.id === parentId)
+      if (!parentExists) {
+        throw new Error('Parent church not found. Please refresh the page and try again.')
+      }
     }
-    churches.value.push(newChurch)
-    saveToStorage()
-    return newChurch
+
+    try {
+      isLoading.value = true
+      error.value = null
+
+      const newChurch = await api.churches.create(parentId, {
+        name: sanitizedName,
+        parentId,
+        metrics: data.metrics
+      })
+
+      // Add to local state directly to avoid UI flicker
+      churches.value.push(newChurch)
+
+      return newChurch
+    } catch (err) {
+      if (err instanceof APIError) {
+        error.value = err.message
+      } else {
+        error.value = err instanceof Error ? err.message : 'Failed to create church'
+      }
+      throw err
+    } finally {
+      isLoading.value = false
+    }
   }
 
   // Update a church
-  const updateChurch = (id: string, data: ChurchData): void => {
+  const updateChurch = async (id: string, data: ChurchData): Promise<void> => {
     // Validate metrics dynamically
     validateMetrics(data.metrics)
 
@@ -157,39 +196,71 @@ export const useChurchesStore = defineStore('churches', () => {
       throw new Error('Church name is required')
     }
 
-    const index = churches.value.findIndex(c => c.id === id)
-    if (index !== -1) {
-      churches.value[index] = {
-        ...churches.value[index],
+    try {
+      isLoading.value = true
+      error.value = null
+
+      const updated = await api.churches.update(id, {
         name: sanitizedName,
-        metrics: { ...data.metrics }
+        parentId: data.parentId || null,
+        metrics: data.metrics
+      })
+
+      // Update local state directly to avoid UI flicker
+      const index = churches.value.findIndex(c => c.id === id)
+      if (index !== -1) {
+        churches.value[index] = updated
       }
-      saveToStorage()
+    } catch (err) {
+      if (err instanceof APIError) {
+        error.value = err.message
+      } else {
+        error.value = err instanceof Error ? err.message : 'Failed to update church'
+      }
+      throw err
+    } finally {
+      isLoading.value = false
     }
   }
 
   // Delete a church (and all its children)
-  const deleteChurch = (id: string): void => {
-    if (id === appConfig.defaults.ROOT_CHURCH_ID) {
+  const deleteChurch = async (id: string): Promise<void> => {
+    // Prevent deleting root church (the one without parent)
+    const churchToDelete = churches.value.find(c => c.id === id)
+    if (churchToDelete && churchToDelete.parentId === null) {
       throw new Error('Cannot delete the root church')
     }
 
-    // Collect all descendants
-    const toDelete = new Set<string>()
-    const collectDescendants = (parentId: string): void => {
-      toDelete.add(parentId)
-      const children = getChildren(parentId)
-      children.forEach(child => collectDescendants(child.id))
-    }
-    collectDescendants(id)
+    try {
+      isLoading.value = true
+      error.value = null
 
-    // Remove all descendants
-    churches.value = churches.value.filter(c => !toDelete.has(c.id))
-    saveToStorage()
+      await api.churches.delete(id)
+
+      // Remove from local state (API handles cascade delete)
+      const toDelete = new Set<string>()
+      const collectDescendants = (parentId: string): void => {
+        toDelete.add(parentId)
+        const children = getChildren(parentId)
+        children.forEach(child => collectDescendants(child.id))
+      }
+      collectDescendants(id)
+
+      churches.value = churches.value.filter(c => !toDelete.has(c.id))
+    } catch (err) {
+      if (err instanceof APIError) {
+        error.value = err.message
+      } else {
+        error.value = err instanceof Error ? err.message : 'Failed to delete church'
+      }
+      throw err
+    } finally {
+      isLoading.value = false
+    }
   }
 
   // Get church by id
-  const getChurch = (id: string): Church | undefined => {
+  const getChurch = (id: string): any | undefined => {
     return churches.value.find(c => c.id === id)
   }
 
@@ -225,20 +296,39 @@ export const useChurchesStore = defineStore('churches', () => {
     return { totals, percentages }
   })
 
-  // Initialize
-  loadFromStorage()
+  // Initialize - load data and watch for auth changes
+  const initializeStore = async (): Promise<void> => {
+    if (auth.isAuthenticated.value) {
+      await loadFromAPI()
+      // After loading churches, ensure metrics are properly set
+      if (churches.value.length > 0) {
+        await ensureMetrics()
+      }
+    }
+  }
 
-  // Ensure all churches have current metrics
-  ensureMetrics()
+  // Watch for authentication changes and reload data
+  watch(() => auth.isAuthenticated.value, async (newValue, oldValue) => {
+    // Reload when user logs in (changes from false to true)
+    if (newValue && !oldValue) {
+      await initializeStore()
+    }
+  })
+
+  // Initial load
+  initializeStore()
 
   return {
     churches,
+    isLoading,
+    error,
     getChildren,
     addChurch,
     updateChurch,
     deleteChurch,
     getChurch,
     totalStats,
-    ensureMetrics
+    ensureMetrics,
+    loadFromAPI
   }
 })

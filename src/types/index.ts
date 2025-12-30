@@ -32,6 +32,7 @@ export interface Church {
 
 export interface ChurchData {
   name: string
+  parentId?: string | null
   metrics: Record<string, number>
 }
 
@@ -99,8 +100,16 @@ export type MetricColor =
   | 'teal'
   | (string & {}) // Allow custom colors but prefer known ones
 
-// Storage types
-export type StorageKey = 'ekklesia-churches' | 'ekklesia-metrics'
+// Auth types (Beter Auth)
+export interface User {
+  id: string
+  email: string
+  name: string
+  emailVerified: boolean
+  image?: string | null
+  createdAt: Date
+  updatedAt: Date
+}
 
 // Validation types
 export interface ValidationResult {

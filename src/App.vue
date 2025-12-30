@@ -18,6 +18,26 @@
 
           <!-- Controls -->
           <div class="flex items-center gap-3">
+            <!-- Auth Buttons -->
+            <button
+              v-if="!isAuthenticated"
+              @click="showLogin = true"
+              class="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-lg transition-all"
+            >
+              Sign In
+            </button>
+            <div v-else class="flex items-center gap-3">
+              <span class="text-sm text-gray-600">
+                {{ user?.email }}
+              </span>
+              <button
+                @click="handleSignOut"
+                class="bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium text-sm shadow-lg border border-gray-200 transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+
             <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-1 flex items-center gap-1">
               <button
                 @click="zoomOut"
@@ -83,7 +103,7 @@
           <TreeNode
             v-if="rootChurch"
             :church="rootChurch"
-            :children="getChildren('root')"
+            :children="getChildren(rootChurch.id)"
             :get-children="getChildren"
             @select="handleSelect"
             @add-child="handleAddChild"
@@ -109,6 +129,20 @@
     <AdminPanel
       :show="showAdmin"
       @close="showAdmin = false"
+    />
+
+    <!-- Login Modal -->
+    <LoginModal
+      :show="showLogin"
+      @close="showLogin = false"
+      @switch-to-register="showLogin = false; showRegister = true"
+    />
+
+    <!-- Register Modal -->
+    <RegisterModal
+      :show="showRegister"
+      @close="showRegister = false"
+      @switch-to-login="showRegister = false; showLogin = true"
     />
 
     <!-- Toast Notification -->
@@ -156,17 +190,23 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useChurchesStore } from './stores/churches'
 import { usePanZoom } from './composables/usePanZoom'
+import { useAuth } from './composables/useAuth'
 import TreeNode from './components/TreeNode.vue'
 import ChurchForm from './components/ChurchForm.vue'
 import StatsPanel from './components/StatsPanel.vue'
 import AdminPanel from './components/AdminPanel.vue'
+import LoginModal from './components/LoginModal.vue'
+import RegisterModal from './components/RegisterModal.vue'
 import type { Church, ChurchData, Stats, Toast } from './types'
 
 const store = useChurchesStore()
 const { scale, translateX, translateY, isDragging, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel, reset, fitToScreen } = usePanZoom()
+const { user, isAuthenticated, signOut } = useAuth()
 
 const showForm = ref<boolean>(false)
 const showAdmin = ref<boolean>(false)
+const showLogin = ref<boolean>(false)
+const showRegister = ref<boolean>(false)
 const editingChurch = ref<Church | null>(null)
 const parentId = ref<string | null>(null)
 const toast = ref<Toast>({ show: false, message: '', type: 'info' })
@@ -175,13 +215,21 @@ const canvasStyle = computed(() => ({
   transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`
 }))
 
-const rootChurch = computed<Church | null>(() => store.getChurch('root'))
+// Find root church (the one with no parent)
+const rootChurch = computed<Church | null>(() => {
+  return store.churches.find(c => c.parentId === null) || null
+})
+
 const totalStats = computed<Stats>(() => store.totalStats)
 
 const getChildren = (parentId: string | null): Church[] => store.getChildren(parentId)
 
 // Calculate tree statistics for smart zoom
 const calculateTreeStats = (): { totalChurches: number; maxDepth: number } => {
+  if (!rootChurch.value) {
+    return { totalChurches: 0, maxDepth: 0 }
+  }
+
   let totalChurches = 0
   let maxDepth = 0
 
@@ -195,7 +243,7 @@ const calculateTreeStats = (): { totalChurches: number; maxDepth: number } => {
     })
   }
 
-  traverse('root', 1)
+  traverse(rootChurch.value.id, 1)
 
   return { totalChurches, maxDepth }
 }
@@ -217,6 +265,13 @@ const handleEdit = (church: Church): void => {
 }
 
 const handleDelete = (id: string): void => {
+  // Prevent deleting root church (the one without parent)
+  const churchToDelete = store.getChurch(id)
+  if (churchToDelete && churchToDelete.parentId === null) {
+    showToast('Cannot delete the root church', 'error')
+    return
+  }
+
   if (confirm('Are you sure you want to delete this church and all sub-churches?')) {
     try {
       store.deleteChurch(id)
@@ -236,13 +291,13 @@ const closeForm = (): void => {
   parentId.value = null
 }
 
-const handleSubmit = (data: ChurchData): void => {
+const handleSubmit = async (data: ChurchData): Promise<void> => {
   try {
     if (editingChurch.value) {
-      store.updateChurch(editingChurch.value.id, data)
+      await store.updateChurch(editingChurch.value.id, data)
       showToast('Church successfully updated', 'success')
     } else {
-      store.addChurch(parentId.value, data)
+      await store.addChurch(parentId.value, data)
       showToast('New church successfully added', 'success')
       // Adjust zoom to fit new church
       const { totalChurches, maxDepth } = calculateTreeStats()
@@ -276,6 +331,15 @@ const zoomOut = (): void => {
 const resetView = (): void => {
   const { totalChurches, maxDepth } = calculateTreeStats()
   fitToScreen(totalChurches, maxDepth)
+}
+
+const handleSignOut = async (): Promise<void> => {
+  try {
+    await signOut()
+    showToast('Successfully signed out', 'success')
+  } catch (error) {
+    showToast((error as Error).message, 'error')
+  }
 }
 
 // Keyboard shortcuts

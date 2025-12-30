@@ -8,11 +8,12 @@
 export const appConfig = {
   /**
    * LocalStorage Keys
-   * Keys used for storing data in browser's localStorage
+   * Keys used for storing client-side preferences in browser's localStorage
+   * Note: Auth data is now stored in HTTP-only cookies (Beter Auth)
+   * Application data is fetched from the API
    */
   storage: {
-    CHURCHES: 'ekklesia-churches',
-    METRICS: 'ekklesia-metrics'
+    THEME: 'ekklesia-theme' // For future UI theme preference
   },
 
   /**

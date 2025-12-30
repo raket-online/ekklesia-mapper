@@ -141,6 +141,7 @@ watch(() => props.show, (newVal: boolean) => {
   if (newVal && props.church) {
     formData.value = {
       name: props.church.name,
+      parentId: props.church.parentId,
       metrics: { ...props.church.metrics }
     }
   } else if (newVal) {

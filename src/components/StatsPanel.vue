@@ -1,8 +1,11 @@
 <template>
   <div class="fixed bottom-4 right-4 z-40">
+    <!-- Don't render if metrics not loaded yet -->
+    <div v-if="allMetrics.length === 0"></div>
+
     <!-- Collapsed State -->
     <div
-      v-if="!isExpanded"
+      v-else-if="!isExpanded"
       @click="toggle"
       class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full shadow-2xl cursor-pointer hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 flex items-center gap-3"
     >
@@ -40,6 +43,7 @@
       <div class="p-4 space-y-3 max-h-[50vh] overflow-y-auto">
         <!-- Primary Metric (Large, No Percentage, No Progress Bar) -->
         <div
+          v-if="allMetrics[0]"
           :class="`${allMetrics[0].classes.bgLight} rounded-xl p-4 border-2 ${allMetrics[0].classes.border} mb-4`"
         >
           <div class="flex items-center justify-between">
@@ -110,7 +114,16 @@ const isExpanded = ref<boolean>(true)
 
 // Get all metrics (primary + others) for unified display with color classes
 const allMetrics = computed(() => {
+  // Wait for metrics to load
+  if (!metricsStore.metrics || metricsStore.metrics.length === 0) {
+    return []
+  }
+
   const primary = metricsStore.getPrimaryMetric()
+  if (!primary) {
+    return []
+  }
+
   const others = metricsStore.metrics.filter(m => !m.isPrimary)
   return [primary, ...others].map(metric => {
     const classes = getMetricClasses(metric.color as any)
