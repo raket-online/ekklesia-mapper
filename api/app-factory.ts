@@ -3,14 +3,14 @@ import cors from 'cors'
 import path from 'path'
 
 // Import modular routes
-import churchesRouter from './routes/churches.routes'
-import metricsRouter from './routes/metrics.routes'
-import settingsRouter from './routes/settings.routes'
-import authHandler from './routes/auth.routes'
+import churchesRouter from '../src/routes/churches.routes'
+import metricsRouter from '../src/routes/metrics.routes'
+import settingsRouter from '../src/routes/settings.routes'
+import authHandler from '../src/routes/auth.routes'
 
 // Import middleware
-import { errorHandler, notFoundHandler } from './middleware/error.middleware'
-import { securityMiddleware, rateLimiter, authRateLimiter, hidePoweredBy } from './middleware/security.middleware'
+import { errorHandler, notFoundHandler } from '../src/middleware/error.middleware'
+import { securityMiddleware, rateLimiter, authRateLimiter, hidePoweredBy } from '../src/middleware/security.middleware'
 
 export const createApiApp = () => {
   const app = express()

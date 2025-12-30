@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { createServer as createViteServer } from 'vite'
 import express from 'express'
-import { createApiApp } from './src/app-factory'
+import { createApiApp } from './api/app-factory'
 import { errorHandler, notFoundHandler } from './src/middleware/error.middleware'
 
 const isDev = process.env.NODE_ENV !== 'production'
