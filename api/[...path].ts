@@ -89,8 +89,15 @@ const client = neon(connectionString)
 const db = drizzle(client)
 
 // ============ BETTER AUTH ============
+// Dynamic baseURL based on environment
+const getAuthBaseURL = () => {
+  if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return "http://localhost:5173"
+}
+
 const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173",
+  baseURL: getAuthBaseURL(),
   trustedOrigins: [
     "http://localhost:5173",
     "http://localhost:3000",
