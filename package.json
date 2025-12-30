@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "tsx watch server.ts",
     "dev:vite": "vite",
-    "build": "vite build && npm run build:api",
+    "build": "vite build && npm run build:api && npm run cleanup:api",
     "build:api": "esbuild api/index.ts --bundle --platform=node --target=es2020 --format=esm --outfile=api/index.js --external:express --external:cors --external:helmet --external:express-rate-limit --external:better-auth --external:drizzle-orm --external:@neondatabase/serverless --external:@vercel/postgres --external:zod --external:dotenv --external:postgres",
+    "cleanup:api": "rm -f api/*.ts",
     "preview": "vite preview",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

@@ -1,5 +1,0 @@
-# Ignore TypeScript source files in api directory
-api/**/*.ts
-
-# Keep the built JavaScript files
-!api/**/*.js
