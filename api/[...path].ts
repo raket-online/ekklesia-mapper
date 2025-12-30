@@ -1,8 +1,8 @@
 // Vercel serverless function that handles all /api/* routes via Express
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import serverless from 'serverless-http'
-import { createApiApp } from '../src/api/app-factory.js'
-import { errorHandler, notFoundHandler } from '../src/middleware/error.middleware.js'
+import { createApiApp } from '../src/api/app-factory'
+import { errorHandler, notFoundHandler } from '../src/middleware/error.middleware'
 
 // Create Express app
 const app = createApiApp()
