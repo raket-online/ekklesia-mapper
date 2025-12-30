@@ -153,8 +153,8 @@ async function getUser(req: VercelRequest): Promise<{ id: string; email: string;
 
 // ============ ROUTE HANDLER ============
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Vercel uses '...path' as the query key for [...path].ts catch-all
-  const path = req.query['...path']
+  // Vercel uses 'path' as the query key for [...path].ts catch-all
+  const path = req.query.path
   const pathStr = Array.isArray(path) ? path.join('/') : path || ''
   const method = req.method || 'GET'
 
