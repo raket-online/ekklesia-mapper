@@ -16,25 +16,14 @@ mkdir -p .vercel/output/functions/api.func
 # Copy static files
 cp -r dist/* .vercel/output/static/
 
-# Build API serverless function
+# Build API serverless function (bundle everything)
 echo "⚡ Building API function..."
 npx esbuild src/api/index.ts \
   --bundle \
   --platform=node \
   --target=es2020 \
   --format=esm \
-  --outfile=.vercel/output/functions/api.func/index.mjs \
-  --external:express \
-  --external:cors \
-  --external:helmet \
-  --external:express-rate-limit \
-  --external:better-auth \
-  --external:drizzle-orm \
-  --external:@neondatabase/serverless \
-  --external:@vercel/postgres \
-  --external:zod \
-  --external:dotenv \
-  --external:postgres
+  --outfile=.vercel/output/functions/api.func/index.mjs
 
 # Create function config
 cat > .vercel/output/functions/api.func/.vc-config.json << 'EOF'
