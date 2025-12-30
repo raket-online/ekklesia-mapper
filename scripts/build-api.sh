@@ -10,7 +10,4 @@ npx esbuild api/\[...path\].ts \
   --outfile=api/\[...path\].js \
   --external:@vercel/node
 
-# Remove .ts file so Vercel uses the bundled .js
-rm -f api/\[...path\].ts
-
-echo "✅ API function bundled (TypeScript source removed)"
+echo "✅ API function bundled"

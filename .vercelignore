@@ -1,0 +1,2 @@
+# Ignore TypeScript source in api/ - use bundled .js instead
+api/**/*.ts
