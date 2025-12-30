@@ -150,14 +150,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pathStr = Array.isArray(path) ? path.join('/') : path || ''
   const method = req.method || 'GET'
 
-  // Debug endpoint
-  if (pathStr === 'debug') {
+  // Debug endpoint - always works, no auth needed
+  if (pathStr === 'debug' || req.url?.includes('/debug')) {
     return res.status(200).json({
       path,
       pathStr,
       url: req.url,
       method,
-      query: req.query
+      query: req.query,
+      headers: {
+        host: req.headers.host,
+        'x-forwarded-proto': req.headers['x-forwarded-proto']
+      }
     })
   }
 
