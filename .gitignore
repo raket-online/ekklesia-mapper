@@ -15,11 +15,6 @@ dist-ssr
 # Vercel
 .vercel
 
-# API build output
-api/**/*.js
-api/**/*.cjs
-!api/**/*.ts
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
