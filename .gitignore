@@ -12,8 +12,8 @@ dist
 dist-ssr
 *.local
 
-# Vercel build output
-.vercel/output
+# Vercel
+.vercel
 
 # Editor directories and files
 .vscode/*
